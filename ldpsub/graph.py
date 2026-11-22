@@ -3,6 +3,7 @@
 import gzip
 
 import networkx as nx
+import numpy as np
 
 
 def load_edge_list(path):
@@ -23,3 +24,16 @@ def load_edge_list(path):
             if u != v:
                 G.add_edge(u, v)
     return nx.convert_node_labels_to_integers(G)
+
+
+def sample_subgraph(G, n, seed=None):
+    """Induced subgraph on n nodes chosen uniformly at random, relabeled 0..n-1.
+
+    If n >= number of nodes, the whole graph is returned.
+    The same seed gives the same subgraph.
+    """
+    if n >= G.number_of_nodes():
+        return G.copy()
+    rng = np.random.default_rng(seed)
+    nodes = rng.choice(G.number_of_nodes(), size=n, replace=False)
+    return nx.convert_node_labels_to_integers(G.subgraph(nodes))
