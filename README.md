@@ -29,7 +29,13 @@ pip install -r requirements.txt
 - `ego-Facebook`, `ca-AstroPh` (main experiments)
 - `email-Enron` (optional)
 
-Download the edge lists from https://snap.stanford.edu/data/ into `data/`.
+Download all of them into `data/` (run from the repo root):
+
+```bash
+python -m scripts.download_data
+```
+
+In code: `load_dataset(name, n=None, seed=None)` from `ldpsub.datasets` (`n` samples a random induced subgraph).
 
 ## Tests
 
