@@ -1,6 +1,6 @@
 import networkx as nx
 
-from ldpsub.exact import count_brute_force
+from ldpsub.exact import count_brute_force, count_exact
 
 
 def test_brute_force_k4():
@@ -25,3 +25,13 @@ def test_brute_force_small_patterns():
     G = nx.complete_graph(3)
     G.add_node(3)
     assert count_brute_force(G) == zero
+
+
+def test_exact_matches_brute_force():
+    # Random small graphs, sparse to dense.
+    for seed, p in enumerate([0.1, 0.3, 0.5, 0.8]):
+        G = nx.gnp_random_graph(14, p, seed=seed)
+        brute = count_brute_force(G)
+        fast = count_exact(G)
+        for pattern, value in fast.items():
+            assert value == brute[pattern], (pattern, p)
