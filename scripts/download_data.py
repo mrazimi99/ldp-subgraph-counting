@@ -1,30 +1,19 @@
-"""Download SNAP datasets into data/.
+"""Download SNAP datasets into data/ and print their size.
 
-Usage: python scripts/download_data.py [name ...]   (default: all)
+Usage (from the repo root): python -m scripts.download_data [name ...]   (default: all)
 """
 
-import os
 import sys
-import urllib.request
 
-DATASETS = {
-    "ca-GrQc": "https://snap.stanford.edu/data/ca-GrQc.txt.gz",
-    "ego-Facebook": "https://snap.stanford.edu/data/facebook_combined.txt.gz",
-    "ca-AstroPh": "https://snap.stanford.edu/data/ca-AstroPh.txt.gz",
-    "email-Enron": "https://snap.stanford.edu/data/email-Enron.txt.gz",
-}
-
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+from ldpsub.datasets import DATASETS, load_dataset
 
 
 def main(names):
+    print(f"{'dataset':<14}{'nodes':>8}{'edges':>9}{'max deg':>9}")
     for name in names:
-        path = os.path.join(DATA_DIR, name + ".txt.gz")
-        if os.path.exists(path):
-            print(f"{name}: already downloaded")
-            continue
-        print(f"{name}: downloading {DATASETS[name]}")
-        urllib.request.urlretrieve(DATASETS[name], path)
+        G = load_dataset(name)
+        max_deg = max(d for _, d in G.degree())
+        print(f"{name:<14}{G.number_of_nodes():>8}{G.number_of_edges():>9}{max_deg:>9}")
 
 
 if __name__ == "__main__":
