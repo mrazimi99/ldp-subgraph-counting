@@ -43,6 +43,13 @@ In code: `load_dataset(name, n=None, seed=None)` from `ldpsub.datasets` (`n` sam
 pytest
 ```
 
+## References
+
+- J. Imola, T. Murakami, K. Chaudhuri. Locally Differentially Private Analysis of Graph Statistics. USENIX Security 2021.
+- A. Pinar, C. Seshadhri, V. Vishal. ESCAPE: Efficiently Counting All 5-Vertex Subgraphs. WWW 2017.
+- Guo et al. Quadrilateral (4-cycle) counting under edge-LDP (QuaTR). arXiv:2507.06508, 2025.
+- J. Leskovec, A. Krevl. SNAP Datasets: Stanford Large Network Dataset Collection. http://snap.stanford.edu/data, 2014.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
