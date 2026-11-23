@@ -1,9 +1,14 @@
 # ldp-subgraph-counting
 
-Counting the six connected 4-node subgraphs (3-star, 3-path, tailed triangle, 4-cycle, diamond, 4-clique)
-under edge local differential privacy (edge-LDP), with a two-round protocol in the style of Imola et al. (2021).
+Counting the six connected 4-node subgraphs (non-induced) under edge local differential privacy (edge-LDP),
+with a two-round protocol in the style of Imola et al. (2021).
 
-CMPT 982 project, SFU.
+![The six 4-node patterns](docs/patterns.png)
+
+**Edge-LDP.** Each node (user) knows only its own neighbor list, and there is no trusted server.
+Each user adds noise to its own data before sending it, so the server never sees true edges.
+A protocol is ε-edge-LDP if, for every user, changing one edge in its neighbor list changes the
+probability of any output by at most a factor e^ε. Smaller ε means more privacy and more noise.
 
 ## Layout
 
@@ -13,6 +18,7 @@ tests/     unit tests and sanity checks (pytest)
 scripts/   experiment and plotting scripts
 data/      SNAP datasets (downloaded, not committed)
 results/   experiment outputs and plots (not committed)
+docs/      figures for this README
 ```
 
 ## Setup
