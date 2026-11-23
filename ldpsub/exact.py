@@ -50,16 +50,35 @@ def count_exact(G):
     t_i  = triangles containing node i
     t_ij = triangles containing edge (i, j) = common neighbors of i and j
     T    = total triangles
+    W_ij = common neighbors of any pair i, j (edge or not)
     """
     A = nx.to_scipy_sparse_array(G, nodelist=range(G.number_of_nodes()), dtype=np.int64, format="csr")
     d = np.asarray(A.sum(axis=1)).ravel()
-    t_edge = (A @ A).multiply(A).tocsr()        # entry (i, j) = t_ij for each edge
+    W = A @ A                                    # W_ij = common neighbors of i and j
+    t_edge = W.multiply(A).tocsr()              # entry (i, j) = t_ij for each edge
     t = np.asarray(t_edge.sum(axis=1)).ravel() // 2
     T = t.sum() // 3
     i, j = sparse.triu(A).nonzero()             # each edge once, i < j
+    t_ij = np.asarray(t_edge[i, j]).ravel()
+    W_pairs = sparse.triu(W, k=1).data          # W_ij for pairs i < j (zeros not stored)
 
     return {
         "3-star": int((d * (d - 1) * (d - 2) // 6).sum()),     # sum_i C(d_i, 3)
         "3-path": int(((d[i] - 1) * (d[j] - 1)).sum() - 3 * T),  # sum_edges (d_i-1)(d_j-1) - 3T
         "tailed-triangle": int((t * (d - 2)).sum()),           # sum_i t_i (d_i - 2)
+        "4-cycle": int((W_pairs * (W_pairs - 1) // 2).sum() // 2),  # 1/2 sum_{i<j} C(W_ij, 2)
+        "diamond": int((t_ij * (t_ij - 1) // 2).sum()),        # sum_edges C(t_ij, 2)
+        "4-clique": _count_4cliques(A),
     }
+
+
+def _count_4cliques(A):
+    """1/4 sum_i (triangles inside N(i)): each 4-clique is seen from each of its 4 nodes."""
+    total = 0
+    for v in range(A.shape[0]):
+        nbrs = A.indices[A.indptr[v]:A.indptr[v + 1]]
+        if len(nbrs) < 3:
+            continue
+        B = A[nbrs][:, nbrs]                     # subgraph induced by N(v)
+        total += (B @ B).multiply(B).sum() // 6  # triangles in that subgraph
+    return int(total // 4)
