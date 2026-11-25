@@ -6,6 +6,7 @@ from ldpsub.privacy import (
     max_degree_bound,
     noisy_degrees,
     randomized_response,
+    reduce_degrees,
     rr_probabilities,
 )
 
@@ -76,3 +77,22 @@ def test_randomized_response_flip_rate():
     non_edges = upper & (A == 0)
     assert abs((Y[edges] == 0).mean() - q) < 0.015      # edges flipped to 0
     assert abs((Y[non_edges] == 1).mean() - q) < 0.015  # non-edges flipped to 1 (noisy edges)
+
+
+def test_reduce_degrees_cuts_only_large_degrees():
+    G = nx.star_graph(5)  # center 0 has degree 5, leaves have degree 1
+    neighbors = reduce_degrees(G, 3, np.random.default_rng(0))
+
+    assert len(neighbors[0]) == 3
+    assert set(neighbors[0]) <= set(G[0])        # kept neighbors are true neighbors
+    assert len(set(neighbors[0])) == 3           # no repeats
+    for leaf in range(1, 6):
+        assert list(neighbors[leaf]) == [0]      # degree 1 <= D, unchanged
+
+
+def test_reduce_degrees_no_cut_when_D_is_large():
+    G = nx.gnp_random_graph(50, 0.2, seed=0)
+    max_degree = max(d for _, d in G.degree())
+    neighbors = reduce_degrees(G, max_degree, np.random.default_rng(0))
+    for i in G:
+        assert set(neighbors[i]) == set(G[i])

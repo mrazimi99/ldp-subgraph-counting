@@ -43,3 +43,18 @@ def randomized_response(G, eps1, rng):
         flips = rng.random(i) < q
         Y[i, :i] = true_bits ^ flips
     return Y + Y.T
+
+
+def reduce_degrees(G, D, rng):
+    """Round 2 input: each node's neighbor list, cut to D random neighbors if d_i > D.
+
+    Returns a list where entry i is the array of neighbors node i uses.
+    Each node cuts only its own list, so i may drop j while j still keeps i.
+    """
+    neighbors = []
+    for i in range(G.number_of_nodes()):
+        N_i = np.array(list(G[i]), dtype=int)
+        if len(N_i) > D:
+            N_i = rng.choice(N_i, size=D, replace=False)
+        neighbors.append(N_i)
+    return neighbors
