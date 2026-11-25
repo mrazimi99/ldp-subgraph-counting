@@ -76,10 +76,3 @@ def test_randomized_response_flip_rate():
     non_edges = upper & (A == 0)
     assert abs((Y[edges] == 0).mean() - q) < 0.015      # edges flipped to 0
     assert abs((Y[non_edges] == 1).mean() - q) < 0.015  # non-edges flipped to 1 (noisy edges)
-
-
-def test_randomized_response_chunk_size_does_not_matter():
-    G = nx.gnp_random_graph(60, 0.2, seed=0)
-    Y_small_chunks = randomized_response(G, 1.0, np.random.default_rng(3), chunk_rows=7)
-    Y_one_chunk = randomized_response(G, 1.0, np.random.default_rng(3), chunk_rows=1000)
-    assert np.array_equal(Y_small_chunks, Y_one_chunk)

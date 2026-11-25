@@ -3,7 +3,6 @@
 All randomness comes from a numpy Generator `rng`, so a fixed seed gives the same run.
 """
 
-import networkx as nx
 import numpy as np
 
 
@@ -29,22 +28,18 @@ def rr_probabilities(eps1):
     return p, 1 - p
 
 
-def randomized_response(G, eps1, rng, chunk_rows=1000):
+def randomized_response(G, eps1, rng):
     """Round 1: the public noisy graph Y (n x n, uint8, symmetric, zero diagonal).
 
     Node i reports its bits a_ij for j < i through RR, so each pair is reported once.
-    The server makes Y symmetric. Rows are processed in chunks to limit memory.
+    The server makes Y symmetric.
     """
     n = G.number_of_nodes()
-    A = nx.to_scipy_sparse_array(G, nodelist=range(n), dtype=np.uint8, format="csr")
     _, q = rr_probabilities(eps1)
-
     Y = np.zeros((n, n), dtype=np.uint8)
-    for start in range(0, n, chunk_rows):
-        stop = min(start + chunk_rows, n)
-        true_bits = A[start:stop].toarray()
-        flips = rng.random((stop - start, n)) < q
-        noisy_bits = true_bits ^ flips
-        reported = np.arange(n) < np.arange(start, stop)[:, None]  # row i reports columns j < i
-        Y[start:stop] = noisy_bits * reported
+    for i in range(n):
+        true_bits = np.zeros(i, dtype=np.uint8)
+        true_bits[[j for j in G[i] if j < i]] = 1
+        flips = rng.random(i) < q
+        Y[i, :i] = true_bits ^ flips
     return Y + Y.T
