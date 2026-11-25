@@ -9,6 +9,8 @@ import networkx as nx
 import numpy as np
 from scipy import sparse
 
+from ldpsub.local import neighbor_block, triangle_sum
+
 PATTERNS = ["3-star", "3-path", "tailed-triangle", "4-cycle", "diamond", "4-clique"]
 
 # On 4 nodes, a connected edge set is identified by its sorted degree sequence.
@@ -68,17 +70,14 @@ def count_exact(G):
         "tailed-triangle": int((t * (d - 2)).sum()),           # sum_i t_i (d_i - 2)
         "4-cycle": int((W_pairs * (W_pairs - 1) // 2).sum() // 2),  # 1/2 sum_{i<j} C(W_ij, 2)
         "diamond": int((t_ij * (t_ij - 1) // 2).sum()),        # sum_edges C(t_ij, 2)
-        "4-clique": _count_4cliques(A),
+        "4-clique": _count_4cliques(G, A),
     }
 
 
-def _count_4cliques(A):
+def _count_4cliques(G, A):
     """1/4 sum_i (triangles inside N(i)): each 4-clique is seen from each of its 4 nodes."""
     total = 0
-    for v in range(A.shape[0]):
-        nbrs = A.indices[A.indptr[v]:A.indptr[v + 1]]
-        if len(nbrs) < 3:
-            continue
-        B = A[nbrs][:, nbrs]                     # subgraph induced by N(v)
-        total += (B @ B).multiply(B).sum() // 6  # triangles in that subgraph
-    return int(total // 4)
+    for i in G:
+        B = neighbor_block(A, list(G[i]))
+        total += triangle_sum(B)
+    return int(round(total)) // 4
