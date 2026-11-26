@@ -74,11 +74,15 @@ def estimate_3star(G, eps0, eps2, rng):
     return run_round2(local_3star, neighbors, public, comb(public.D, 2), eps2, rng)
 
 
-# Tailed triangle: X_i = w_i (d_i - 2), w_i = sum of centered noisy bits among N_i,
-# E[w_i] = (p - q) t_i. Sensitivity (3/2) D (D - 1). Server divides the sum by (p - q).
+def triangle_building_block(N_i, public):
+    """w_i = sum over pairs {k, l} in N_i of centered noisy bits y_kl - q.  E[w_i] = (p - q) t_i."""
+    return pair_sum(neighbor_block(public.Y, N_i) - public.q)
+
+
+# Tailed triangle: X_i = w_i (d_i - 2). Sensitivity (3/2) D (D - 1). Server divides the sum by (p - q).
 
 def local_tailed_triangle(N_i, public):
-    w_i = pair_sum(neighbor_block(public.Y, N_i) - public.q)
+    w_i = triangle_building_block(N_i, public)
     return w_i * (len(N_i) - 2)
 
 
@@ -88,3 +92,21 @@ def estimate_tailed_triangle(G, eps0, eps1, eps2, rng):
     D = public.D
     total = run_round2(local_tailed_triangle, neighbors, public, 1.5 * D * (D - 1), eps2, rng)
     return total / (public.p - public.q)
+
+
+# 3-path: U_i = S_i / 2 - w_i / (p - q), S_i = (d_i - 1) * sum_{j in N_i} max(d~_j - 1, 0).
+# Summed over nodes: sum_edges (d_i - 1)(d_j - 1) - 3T. Sensitivity D^2 + D / (p - q). Server sums.
+
+def local_3path(N_i, public):
+    d_i = len(N_i)
+    S_i = (d_i - 1) * np.maximum(public.d_noisy[N_i] - 1, 0).sum()
+    w_i = triangle_building_block(N_i, public)
+    return S_i / 2 - w_i / (public.p - public.q)
+
+
+def estimate_3path(G, eps0, eps1, eps2, rng):
+    public = run_round1(G, eps0, eps1, rng)
+    neighbors = bounded_neighbors(G, public.D, rng)
+    D = public.D
+    sensitivity = D**2 + D / (public.p - public.q)
+    return run_round2(local_3path, neighbors, public, sensitivity, eps2, rng)

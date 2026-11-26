@@ -4,8 +4,10 @@ import networkx as nx
 import numpy as np
 
 from ldpsub.estimators import (
+    estimate_3path,
     estimate_3star,
     estimate_tailed_triangle,
+    local_3path,
     local_3star,
     local_tailed_triangle,
     noiseless_public,
@@ -81,4 +83,35 @@ def test_estimate_tailed_triangle_same_seed_same_result():
     G = RANDOM_GRAPHS[1]
     a = estimate_tailed_triangle(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
     b = estimate_tailed_triangle(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    assert a == b
+
+
+# 3-path
+
+def test_3path_noiseless_local_sum_is_exact():
+    for G in RANDOM_GRAPHS:
+        public = noiseless_public(G)
+        total = sum(local_3path(N_i, public) for N_i in true_neighbors(G))
+        assert np.isclose(total, count_exact(G)["3-path"])
+
+
+def test_3path_is_unbiased():
+    # Large eps0: no degree cut and no clipping of d~_j at 0. This tests the RR and Laplace parts.
+    G = RANDOM_GRAPHS[1]
+    rng = np.random.default_rng(0)
+    estimates = [estimate_3path(G, 100.0, 1.0, 1.0, rng) for _ in range(2000)]
+    standard_error = np.std(estimates) / np.sqrt(len(estimates))
+    assert abs(np.mean(estimates) - count_exact(G)["3-path"]) < 4 * standard_error
+
+
+def test_estimate_3path_huge_eps_is_exact():
+    for seed, G in enumerate(RANDOM_GRAPHS):
+        estimate = estimate_3path(G, 1e6, 50.0, 1e6, np.random.default_rng(seed))
+        assert abs(estimate - count_exact(G)["3-path"]) < 1
+
+
+def test_estimate_3path_same_seed_same_result():
+    G = RANDOM_GRAPHS[1]
+    a = estimate_3path(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    b = estimate_3path(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
     assert a == b
