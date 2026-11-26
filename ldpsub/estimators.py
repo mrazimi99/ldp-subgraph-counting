@@ -12,7 +12,7 @@ from typing import Optional
 import networkx as nx
 import numpy as np
 
-from ldpsub.local import neighbor_block, pair_sum, triangle_sum
+from ldpsub.local import neighbor_block, pair_sum, triangle_sum, wedge_sum
 from ldpsub.privacy import (
     bounded_neighbors,
     laplace,
@@ -124,3 +124,19 @@ def estimate_4clique(G, eps0, eps1, eps2, rng):
     neighbors = bounded_neighbors(G, public.D, rng)
     total = run_round2(local_4clique, neighbors, public, comb(public.D, 2), eps2, rng)
     return total / (4 * (public.p - public.q) ** 3)
+
+
+# Diamond: Y_i = sum over j in N_i, pairs {k, l} in N_i \ {j} of centered noisy bits y_jk y_jl,
+# E[Y_i] = (p - q)^2 * (wedges among N_i). Each diamond is seen from both ends of its middle edge.
+# Sensitivity (3/2) D (D - 1). Server divides the sum by 2 (p - q)^2.
+
+def local_diamond(N_i, public):
+    return wedge_sum(neighbor_block(public.Y, N_i) - public.q)
+
+
+def estimate_diamond(G, eps0, eps1, eps2, rng):
+    public = run_round1(G, eps0, eps1, rng)
+    neighbors = bounded_neighbors(G, public.D, rng)
+    D = public.D
+    total = run_round2(local_diamond, neighbors, public, 1.5 * D * (D - 1), eps2, rng)
+    return total / (2 * (public.p - public.q) ** 2)

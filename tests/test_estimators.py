@@ -7,10 +7,12 @@ from ldpsub.estimators import (
     estimate_3path,
     estimate_3star,
     estimate_4clique,
+    estimate_diamond,
     estimate_tailed_triangle,
     local_3path,
     local_3star,
     local_4clique,
+    local_diamond,
     local_tailed_triangle,
     noiseless_public,
     run_round2,
@@ -147,4 +149,35 @@ def test_estimate_4clique_same_seed_same_result():
     G = RANDOM_GRAPHS[1]
     a = estimate_4clique(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
     b = estimate_4clique(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    assert a == b
+
+
+# Diamond
+
+def test_diamond_noiseless_local_sum_is_exact():
+    for G in RANDOM_GRAPHS:
+        public = noiseless_public(G)
+        total = sum(local_diamond(N_i, public) for N_i in true_neighbors(G))
+        assert np.isclose(total / 2, count_exact(G)["diamond"])
+
+
+def test_diamond_is_unbiased():
+    # Large eps0 so D never cuts a neighbor: this tests the RR and Laplace parts.
+    G = RANDOM_GRAPHS[1]
+    rng = np.random.default_rng(0)
+    estimates = [estimate_diamond(G, 100.0, 1.0, 1.0, rng) for _ in range(2000)]
+    standard_error = np.std(estimates) / np.sqrt(len(estimates))
+    assert abs(np.mean(estimates) - count_exact(G)["diamond"]) < 4 * standard_error
+
+
+def test_estimate_diamond_huge_eps_is_exact():
+    for seed, G in enumerate(RANDOM_GRAPHS):
+        estimate = estimate_diamond(G, 1e6, 50.0, 1e6, np.random.default_rng(seed))
+        assert abs(estimate - count_exact(G)["diamond"]) < 1
+
+
+def test_estimate_diamond_same_seed_same_result():
+    G = RANDOM_GRAPHS[1]
+    a = estimate_diamond(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    b = estimate_diamond(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
     assert a == b
