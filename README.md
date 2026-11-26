@@ -32,8 +32,7 @@ pip install -r requirements.txt
 ## Datasets (SNAP)
 
 - `ca-GrQc` (debugging)
-- `ego-Facebook`, `ca-AstroPh` (main experiments)
-- `email-Enron` (optional)
+- `ego-Facebook`, `ca-AstroPh`, `email-Enron` (main experiments)
 
 Download all of them into `data/` (run from the repo root):
 
@@ -42,6 +41,16 @@ python -m scripts.download_data
 ```
 
 In code: `load_dataset(name, n=None, seed=None)` from `ldpsub.datasets` (`n` samples a random induced subgraph).
+
+## Estimators
+
+In code, from `ldpsub.estimators`. Budgets are passed separately; the caller chooses the split.
+
+- `estimate_3star(G, eps0, eps2, rng)`
+- `estimate_<pattern>(G, eps0, eps1, eps2, rng)` for `3path`, `tailed_triangle`, `diamond`, `4clique`
+- `estimate_4cycle(G, eps0, eps1, eps2, tau, rng)`
+
+Exact counts: `count_exact(G)` from `ldpsub.exact`.
 
 ## Tests
 
