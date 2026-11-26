@@ -49,7 +49,7 @@ def randomized_response(G, eps1, rng):
     return Y + Y.T
 
 
-def reduce_degrees(G, D, rng):
+def bounded_neighbors(G, D, rng):
     """Round 2 input: each node's neighbor list, cut to D random neighbors if d_i > D.
 
     Returns a list where entry i is the array of neighbors node i uses.

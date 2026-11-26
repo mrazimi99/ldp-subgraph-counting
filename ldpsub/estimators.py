@@ -13,11 +13,11 @@ import networkx as nx
 import numpy as np
 
 from ldpsub.privacy import (
+    bounded_neighbors,
     laplace,
     max_degree_bound,
     noisy_degrees,
     randomized_response,
-    reduce_degrees,
     rr_probabilities,
 )
 
@@ -69,5 +69,5 @@ def local_3star(N_i, public):
 
 def estimate_3star(G, eps0, eps2, rng):
     public = run_round1(G, eps0, None, rng)
-    neighbors = reduce_degrees(G, public.D, rng)
+    neighbors = bounded_neighbors(G, public.D, rng)
     return run_round2(local_3star, neighbors, public, comb(public.D, 2), eps2, rng)
