@@ -56,6 +56,7 @@ Exact counts: `count_exact(G)` from `ldpsub.exact`.
 
 ```bash
 pytest
+python -m scripts.sanity_check   # estimators on sampled real subgraphs, about 2 minutes
 ```
 
 ## References
