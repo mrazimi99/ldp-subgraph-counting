@@ -38,9 +38,10 @@ def test_noisy_degrees_same_seed_same_output():
 
 
 def test_max_degree_bound():
-    assert max_degree_bound([3.7, 10.2, 5.0]) == 10
-    assert max_degree_bound([3.7, 9.99, 5.0]) == 9
-    assert max_degree_bound([-2.0, 0.4]) == 1  # never below 1
+    assert max_degree_bound([3.7, 10.2, 5.0]) == 11
+    assert max_degree_bound([3.7, 9.99, 5.0]) == 10
+    assert max_degree_bound([3.7, 10.0, 5.0]) == 10
+    assert max_degree_bound([-2.0, -0.4]) == 1  # never below 1
 
 
 def test_rr_probabilities():

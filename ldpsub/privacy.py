@@ -18,8 +18,12 @@ def noisy_degrees(degrees, eps0, rng):
 
 
 def max_degree_bound(noisy_degrees):
-    """Public degree bound D = floor(max d~_i), at least 1."""
-    return max(1, int(np.floor(np.max(noisy_degrees))))
+    """Public degree bound D = ceil(max d~_i), at least 1.
+
+    Ceil (not floor): with very small noise, floor would give max d - 1 half the time
+    and cut a true neighbor. Rounding is post-processing, so privacy is the same.
+    """
+    return max(1, int(np.ceil(np.max(noisy_degrees))))
 
 
 def rr_probabilities(eps1):
