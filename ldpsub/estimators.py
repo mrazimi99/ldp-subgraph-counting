@@ -12,7 +12,7 @@ from typing import Optional
 import networkx as nx
 import numpy as np
 
-from ldpsub.local import neighbor_block, pair_sum
+from ldpsub.local import neighbor_block, pair_sum, triangle_sum
 from ldpsub.privacy import (
     bounded_neighbors,
     laplace,
@@ -110,3 +110,17 @@ def estimate_3path(G, eps0, eps1, eps2, rng):
     D = public.D
     sensitivity = D**2 + D / (public.p - public.q)
     return run_round2(local_3path, neighbors, public, sensitivity, eps2, rng)
+
+
+# 4-clique: Z_i = sum over triples {j, k, l} in N_i of centered noisy bits y_jk y_jl y_kl,
+# E[Z_i] = (p - q)^3 * (triangles among N_i). Sensitivity C(D, 2). Server divides the sum by 4 (p - q)^3.
+
+def local_4clique(N_i, public):
+    return triangle_sum(neighbor_block(public.Y, N_i) - public.q)
+
+
+def estimate_4clique(G, eps0, eps1, eps2, rng):
+    public = run_round1(G, eps0, eps1, rng)
+    neighbors = bounded_neighbors(G, public.D, rng)
+    total = run_round2(local_4clique, neighbors, public, comb(public.D, 2), eps2, rng)
+    return total / (4 * (public.p - public.q) ** 3)
