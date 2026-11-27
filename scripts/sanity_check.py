@@ -7,18 +7,22 @@
 Usage (from the repo root): python -m scripts.sanity_check
 """
 
+from functools import partial
+
 import numpy as np
 
 from ldpsub.datasets import load_dataset
 from ldpsub.estimators import (
-    estimate_3path,
-    estimate_3star,
-    estimate_4clique,
-    estimate_4cycle,
-    estimate_diamond,
-    estimate_tailed_triangle,
+    round2_3path,
+    round2_3star,
+    round2_4clique,
+    round2_4cycle,
+    round2_diamond,
+    round2_tailed_triangle,
+    run_round1,
 )
 from ldpsub.exact import PATTERNS, count_exact
+from ldpsub.privacy import bounded_neighbors
 
 # Sample sizes chosen so every pattern has a nonzero count.
 SAMPLE_SIZES = {"ca-GrQc": 1000, "ego-Facebook": 300, "ca-AstroPh": 1000, "email-Enron": 3000}
@@ -30,20 +34,21 @@ HUGE_EPS = dict(eps0=1e6, eps1=50.0, eps2=1e12)  # eps1 = 50: flip probability e
 RR_ONLY = dict(eps0=100.0, eps1=1.0, eps2=1e6)  # only RR is random
 
 
+ROUND2 = {
+    "3-star": round2_3star,
+    "3-path": round2_3path,
+    "tailed-triangle": round2_tailed_triangle,
+    "4-cycle": partial(round2_4cycle, tau=TAU),
+    "diamond": round2_diamond,
+    "4-clique": round2_4clique,
+}
+
+
 def run_estimator(pattern, G, eps0, eps1, eps2, rng):
-    if pattern == "3-star":
-        return estimate_3star(G, eps0, eps2, rng)
-    if pattern == "3-path":
-        return estimate_3path(G, eps0, eps1, eps2, rng)
-    if pattern == "tailed-triangle":
-        return estimate_tailed_triangle(G, eps0, eps1, eps2, rng)
-    if pattern == "4-cycle":
-        return estimate_4cycle(G, eps0, eps1, eps2, TAU, rng)
-    if pattern == "diamond":
-        return estimate_diamond(G, eps0, eps1, eps2, rng)
-    if pattern == "4-clique":
-        return estimate_4clique(G, eps0, eps1, eps2, rng)
-    raise ValueError(pattern)
+    """One full run of a pattern's protocol: round 1, bounded neighbors, round 2. The 3-star uses no RR."""
+    public = run_round1(G, eps0, None if pattern == "3-star" else eps1, rng)
+    neighbors = bounded_neighbors(G, public.D, rng)
+    return ROUND2[pattern](public, neighbors, eps2, rng)
 
 
 def main():

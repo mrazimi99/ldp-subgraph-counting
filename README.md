@@ -45,10 +45,16 @@ In code: `load_dataset(name, n=None, seed=None)` from `ldpsub.datasets` (`n` sam
 ## Estimators
 
 In code, from `ldpsub.estimators`. Budgets are passed separately; the caller chooses the split.
+One run of a pattern's protocol:
 
-- `estimate_3star(G, eps0, eps2, rng)`
-- `estimate_<pattern>(G, eps0, eps1, eps2, rng)` for `3path`, `tailed_triangle`, `diamond`, `4clique`
-- `estimate_4cycle(G, eps0, eps1, eps2, tau, rng)`
+```python
+public = run_round1(G, eps0, eps1, rng)            # eps1 = None for the 3-star (no RR)
+neighbors = bounded_neighbors(G, public.D, rng)    # from ldpsub.privacy
+estimate = round2_<pattern>(public, neighbors, eps2, rng)
+```
+
+`<pattern>` is `3star`, `3path`, `tailed_triangle`, `diamond`, `4clique`, or `4cycle` (also takes `tau`).
+One round-1 output can be shared by several patterns.
 
 Exact counts: `count_exact(G)` from `ldpsub.exact`.
 

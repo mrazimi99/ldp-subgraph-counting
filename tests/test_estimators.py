@@ -6,12 +6,6 @@ import numpy as np
 
 from ldpsub.estimators import (
     debiased_rows,
-    estimate_3path,
-    estimate_3star,
-    estimate_4clique,
-    estimate_4cycle,
-    estimate_diamond,
-    estimate_tailed_triangle,
     local_3path,
     local_3star,
     local_4clique,
@@ -19,10 +13,17 @@ from ldpsub.estimators import (
     local_diamond,
     local_tailed_triangle,
     noiseless_public,
+    round2_3path,
+    round2_3star,
+    round2_4clique,
+    round2_4cycle,
+    round2_diamond,
+    round2_tailed_triangle,
     run_round1,
     run_round2,
 )
 from ldpsub.exact import count_exact
+from ldpsub.privacy import bounded_neighbors
 
 RANDOM_GRAPHS = [nx.gnp_random_graph(30, p, seed=seed) for seed, p in enumerate([0.1, 0.3, 0.6])]
 
@@ -36,6 +37,15 @@ def noiseless_local_sum(local_value, G):
     public = noiseless_public(G)
     return sum(local_value(i, N_i, public) for i, N_i in enumerate(true_neighbors(G)))
 
+
+def run_protocol(round2, G, eps0, eps1, eps2, rng, **extra):
+    """One full run, as in the experiments: round 1, bounded neighbors, round 2."""
+    public = run_round1(G, eps0, eps1, rng)
+    neighbors = bounded_neighbors(G, public.D, rng)
+    return round2(public, neighbors, eps2, rng, **extra)
+
+
+# 3-star (no RR: eps1 = None)
 
 def test_3star_noiseless_local_sum_is_exact():
     for G in RANDOM_GRAPHS:
@@ -54,16 +64,16 @@ def test_3star_round2_is_unbiased():
     assert abs(np.mean(estimates) - count_exact(G)["3-star"]) < 4 * standard_error
 
 
-def test_estimate_3star_huge_eps_is_exact():
+def test_3star_huge_eps_is_exact():
     for seed, G in enumerate(RANDOM_GRAPHS):
-        estimate = estimate_3star(G, 1e6, 1e6, np.random.default_rng(seed))
+        estimate = run_protocol(round2_3star, G, 1e6, None, 1e6, np.random.default_rng(seed))
         assert abs(estimate - count_exact(G)["3-star"]) < 1
 
 
-def test_estimate_3star_same_seed_same_result():
+def test_3star_same_seed_same_result():
     G = RANDOM_GRAPHS[1]
-    a = estimate_3star(G, 0.5, 1.0, np.random.default_rng(5))
-    b = estimate_3star(G, 0.5, 1.0, np.random.default_rng(5))
+    a = run_protocol(round2_3star, G, 0.5, None, 1.0, np.random.default_rng(5))
+    b = run_protocol(round2_3star, G, 0.5, None, 1.0, np.random.default_rng(5))
     assert a == b
 
 
@@ -78,22 +88,22 @@ def test_tailed_triangle_is_unbiased():
     # Large eps0 so D never cuts a neighbor: this tests the RR and Laplace parts.
     G = RANDOM_GRAPHS[1]
     rng = np.random.default_rng(0)
-    estimates = [estimate_tailed_triangle(G, 100.0, 1.0, 1.0, rng) for _ in range(2000)]
+    estimates = [run_protocol(round2_tailed_triangle, G, 100.0, 1.0, 1.0, rng) for _ in range(2000)]
     standard_error = np.std(estimates) / np.sqrt(len(estimates))
     assert abs(np.mean(estimates) - count_exact(G)["tailed-triangle"]) < 4 * standard_error
 
 
-def test_estimate_tailed_triangle_huge_eps_is_exact():
+def test_tailed_triangle_huge_eps_is_exact():
     # eps1 = 50: flip probability e^-50, no bit is flipped.
     for seed, G in enumerate(RANDOM_GRAPHS):
-        estimate = estimate_tailed_triangle(G, 1e6, 50.0, 1e6, np.random.default_rng(seed))
+        estimate = run_protocol(round2_tailed_triangle, G, 1e6, 50.0, 1e6, np.random.default_rng(seed))
         assert abs(estimate - count_exact(G)["tailed-triangle"]) < 1
 
 
-def test_estimate_tailed_triangle_same_seed_same_result():
+def test_tailed_triangle_same_seed_same_result():
     G = RANDOM_GRAPHS[1]
-    a = estimate_tailed_triangle(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
-    b = estimate_tailed_triangle(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    a = run_protocol(round2_tailed_triangle, G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    b = run_protocol(round2_tailed_triangle, G, 0.5, 1.0, 1.0, np.random.default_rng(5))
     assert a == b
 
 
@@ -108,21 +118,21 @@ def test_3path_is_unbiased():
     # Large eps0: no degree cut and no clipping of d~_j at 0. This tests the RR and Laplace parts.
     G = RANDOM_GRAPHS[1]
     rng = np.random.default_rng(0)
-    estimates = [estimate_3path(G, 100.0, 1.0, 1.0, rng) for _ in range(2000)]
+    estimates = [run_protocol(round2_3path, G, 100.0, 1.0, 1.0, rng) for _ in range(2000)]
     standard_error = np.std(estimates) / np.sqrt(len(estimates))
     assert abs(np.mean(estimates) - count_exact(G)["3-path"]) < 4 * standard_error
 
 
-def test_estimate_3path_huge_eps_is_exact():
+def test_3path_huge_eps_is_exact():
     for seed, G in enumerate(RANDOM_GRAPHS):
-        estimate = estimate_3path(G, 1e6, 50.0, 1e6, np.random.default_rng(seed))
+        estimate = run_protocol(round2_3path, G, 1e6, 50.0, 1e6, np.random.default_rng(seed))
         assert abs(estimate - count_exact(G)["3-path"]) < 1
 
 
-def test_estimate_3path_same_seed_same_result():
+def test_3path_same_seed_same_result():
     G = RANDOM_GRAPHS[1]
-    a = estimate_3path(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
-    b = estimate_3path(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    a = run_protocol(round2_3path, G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    b = run_protocol(round2_3path, G, 0.5, 1.0, 1.0, np.random.default_rng(5))
     assert a == b
 
 
@@ -137,21 +147,21 @@ def test_4clique_is_unbiased():
     # Large eps0 so D never cuts a neighbor: this tests the RR and Laplace parts.
     G = RANDOM_GRAPHS[1]
     rng = np.random.default_rng(0)
-    estimates = [estimate_4clique(G, 100.0, 1.0, 1.0, rng) for _ in range(2000)]
+    estimates = [run_protocol(round2_4clique, G, 100.0, 1.0, 1.0, rng) for _ in range(2000)]
     standard_error = np.std(estimates) / np.sqrt(len(estimates))
     assert abs(np.mean(estimates) - count_exact(G)["4-clique"]) < 4 * standard_error
 
 
-def test_estimate_4clique_huge_eps_is_exact():
+def test_4clique_huge_eps_is_exact():
     for seed, G in enumerate(RANDOM_GRAPHS):
-        estimate = estimate_4clique(G, 1e6, 50.0, 1e6, np.random.default_rng(seed))
+        estimate = run_protocol(round2_4clique, G, 1e6, 50.0, 1e6, np.random.default_rng(seed))
         assert abs(estimate - count_exact(G)["4-clique"]) < 1
 
 
-def test_estimate_4clique_same_seed_same_result():
+def test_4clique_same_seed_same_result():
     G = RANDOM_GRAPHS[1]
-    a = estimate_4clique(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
-    b = estimate_4clique(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    a = run_protocol(round2_4clique, G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    b = run_protocol(round2_4clique, G, 0.5, 1.0, 1.0, np.random.default_rng(5))
     assert a == b
 
 
@@ -166,21 +176,21 @@ def test_diamond_is_unbiased():
     # Large eps0 so D never cuts a neighbor: this tests the RR and Laplace parts.
     G = RANDOM_GRAPHS[1]
     rng = np.random.default_rng(0)
-    estimates = [estimate_diamond(G, 100.0, 1.0, 1.0, rng) for _ in range(2000)]
+    estimates = [run_protocol(round2_diamond, G, 100.0, 1.0, 1.0, rng) for _ in range(2000)]
     standard_error = np.std(estimates) / np.sqrt(len(estimates))
     assert abs(np.mean(estimates) - count_exact(G)["diamond"]) < 4 * standard_error
 
 
-def test_estimate_diamond_huge_eps_is_exact():
+def test_diamond_huge_eps_is_exact():
     for seed, G in enumerate(RANDOM_GRAPHS):
-        estimate = estimate_diamond(G, 1e6, 50.0, 1e6, np.random.default_rng(seed))
+        estimate = run_protocol(round2_diamond, G, 1e6, 50.0, 1e6, np.random.default_rng(seed))
         assert abs(estimate - count_exact(G)["diamond"]) < 1
 
 
-def test_estimate_diamond_same_seed_same_result():
+def test_diamond_same_seed_same_result():
     G = RANDOM_GRAPHS[1]
-    a = estimate_diamond(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
-    b = estimate_diamond(G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    a = run_protocol(round2_diamond, G, 0.5, 1.0, 1.0, np.random.default_rng(5))
+    b = run_protocol(round2_diamond, G, 0.5, 1.0, 1.0, np.random.default_rng(5))
     assert a == b
 
 
@@ -207,19 +217,40 @@ def test_4cycle_rr_part_is_unbiased():
     # Large eps0 (no degree cut), large tau (no clipping), huge eps2 (no Laplace): only RR is random.
     G = RANDOM_GRAPHS[1]
     rng = np.random.default_rng(0)
-    estimates = [estimate_4cycle(G, 100.0, 1.0, 1e6, 1000.0, rng) for _ in range(2000)]
+    estimates = [run_protocol(round2_4cycle, G, 100.0, 1.0, 1e6, rng, tau=1000.0) for _ in range(2000)]
     standard_error = np.std(estimates) / np.sqrt(len(estimates))
     assert abs(np.mean(estimates) - count_exact(G)["4-cycle"]) < 4 * standard_error
 
 
-def test_estimate_4cycle_huge_eps_is_exact():
+def test_4cycle_huge_eps_is_exact():
     for seed, G in enumerate(RANDOM_GRAPHS):
-        estimate = estimate_4cycle(G, 1e6, 50.0, 1e6, 1000.0, np.random.default_rng(seed))
+        estimate = run_protocol(round2_4cycle, G, 1e6, 50.0, 1e6, np.random.default_rng(seed), tau=1000.0)
         assert abs(estimate - count_exact(G)["4-cycle"]) < 1
 
 
-def test_estimate_4cycle_same_seed_same_result():
+def test_4cycle_same_seed_same_result():
     G = RANDOM_GRAPHS[1]
-    a = estimate_4cycle(G, 0.5, 1.0, 1.0, 10.0, np.random.default_rng(5))
-    b = estimate_4cycle(G, 0.5, 1.0, 1.0, 10.0, np.random.default_rng(5))
+    a = run_protocol(round2_4cycle, G, 0.5, 1.0, 1.0, np.random.default_rng(5), tau=10.0)
+    b = run_protocol(round2_4cycle, G, 0.5, 1.0, 1.0, np.random.default_rng(5), tau=10.0)
     assert a == b
+
+
+# Shared round 1: one round-1 output feeds the round 2 of all six patterns.
+
+def test_shared_round1_huge_eps_all_patterns_exact():
+    for seed, G in enumerate(RANDOM_GRAPHS):
+        rng = np.random.default_rng(seed)
+        public = run_round1(G, 1e6, 50.0, rng)
+        neighbors = bounded_neighbors(G, public.D, rng)
+        eps2 = 1e12
+        estimates = {
+            "3-star": round2_3star(public, neighbors, eps2, rng),
+            "3-path": round2_3path(public, neighbors, eps2, rng),
+            "tailed-triangle": round2_tailed_triangle(public, neighbors, eps2, rng),
+            "4-cycle": round2_4cycle(public, neighbors, eps2, rng, tau=1000.0),
+            "diamond": round2_diamond(public, neighbors, eps2, rng),
+            "4-clique": round2_4clique(public, neighbors, eps2, rng),
+        }
+        exact = count_exact(G)
+        for pattern, estimate in estimates.items():
+            assert abs(estimate - exact[pattern]) < 1, pattern

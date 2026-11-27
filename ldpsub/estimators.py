@@ -15,7 +15,6 @@ import numpy as np
 
 from ldpsub.local import neighbor_block, pair_sum, triangle_sum, wedge_sum
 from ldpsub.privacy import (
-    bounded_neighbors,
     laplace,
     max_degree_bound,
     noisy_degrees,
@@ -69,9 +68,7 @@ def local_3star(i, N_i, public):
     return comb(len(N_i), 3)
 
 
-def estimate_3star(G, eps0, eps2, rng):
-    public = run_round1(G, eps0, None, rng)
-    neighbors = bounded_neighbors(G, public.D, rng)
+def round2_3star(public, neighbors, eps2, rng):
     return run_round2(local_3star, neighbors, public, comb(public.D, 2), eps2, rng)
 
 
@@ -87,9 +84,7 @@ def local_tailed_triangle(i, N_i, public):
     return w_i * (len(N_i) - 2)
 
 
-def estimate_tailed_triangle(G, eps0, eps1, eps2, rng):
-    public = run_round1(G, eps0, eps1, rng)
-    neighbors = bounded_neighbors(G, public.D, rng)
+def round2_tailed_triangle(public, neighbors, eps2, rng):
     D = public.D
     total = run_round2(local_tailed_triangle, neighbors, public, 1.5 * D * (D - 1), eps2, rng)
     return total / (public.p - public.q)
@@ -105,9 +100,7 @@ def local_3path(i, N_i, public):
     return S_i / 2 - w_i / (public.p - public.q)
 
 
-def estimate_3path(G, eps0, eps1, eps2, rng):
-    public = run_round1(G, eps0, eps1, rng)
-    neighbors = bounded_neighbors(G, public.D, rng)
+def round2_3path(public, neighbors, eps2, rng):
     D = public.D
     sensitivity = D**2 + D / (public.p - public.q)
     return run_round2(local_3path, neighbors, public, sensitivity, eps2, rng)
@@ -120,9 +113,7 @@ def local_4clique(i, N_i, public):
     return triangle_sum(neighbor_block(public.Y, N_i) - public.q)
 
 
-def estimate_4clique(G, eps0, eps1, eps2, rng):
-    public = run_round1(G, eps0, eps1, rng)
-    neighbors = bounded_neighbors(G, public.D, rng)
+def round2_4clique(public, neighbors, eps2, rng):
     total = run_round2(local_4clique, neighbors, public, comb(public.D, 2), eps2, rng)
     return total / (4 * (public.p - public.q) ** 3)
 
@@ -135,9 +126,7 @@ def local_diamond(i, N_i, public):
     return wedge_sum(neighbor_block(public.Y, N_i) - public.q)
 
 
-def estimate_diamond(G, eps0, eps1, eps2, rng):
-    public = run_round1(G, eps0, eps1, rng)
-    neighbors = bounded_neighbors(G, public.D, rng)
+def round2_diamond(public, neighbors, eps2, rng):
     D = public.D
     total = run_round2(local_diamond, neighbors, public, 1.5 * D * (D - 1), eps2, rng)
     return total / (2 * (public.p - public.q) ** 2)
@@ -169,8 +158,6 @@ def local_4cycle(i, N_i, public, tau):
     return pair_sum(np.clip(C_hat, -tau, tau))
 
 
-def estimate_4cycle(G, eps0, eps1, eps2, tau, rng):
-    public = run_round1(G, eps0, eps1, rng)
-    neighbors = bounded_neighbors(G, public.D, rng)
+def round2_4cycle(public, neighbors, eps2, rng, tau):
     total = run_round2(partial(local_4cycle, tau=tau), neighbors, public, public.D * tau, eps2, rng)
     return total / 4
